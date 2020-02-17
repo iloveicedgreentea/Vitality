@@ -47,7 +47,7 @@ func main() {
 	err := app.Run(os.Args)
 
 	//todo: testing, doesn't actually do anything
-	scanner.Scan(filePathList)
+	scanner.Scan("file", filePathList)
 
 	if err != nil {
 		log.Fatal(err)
