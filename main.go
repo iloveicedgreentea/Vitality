@@ -30,6 +30,7 @@ func main() {
 				Usage:       "Path to AWS Parameter Store value. If not empty, use parameter store to lookup VT API key",
 				Destination: &paramStorePath,
 			},
+			// todo! add support for scanType | url or file
 			&cli.PathFlag{
 				Name:        "filePaths",
 				Usage:       "List of file paths to scan",

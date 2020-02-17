@@ -1,5 +1,5 @@
 # Vitality
-A CLI interface for Virus Total written in Go
+A CLI interface for VirusTotal written in Go
 
 ## Features
 (coming soon)
