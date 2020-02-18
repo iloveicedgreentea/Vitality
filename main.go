@@ -6,7 +6,10 @@ import (
 	"os"
 
 	awsssm "github.com/PaddleHQ/go-aws-ssm"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/iloveicedgreentea/Vitality/scanner"
+	"github.com/aws/aws-sdk-go/service/ssm"
 
 	// "github.com/spf13/viper"
 
@@ -19,12 +22,12 @@ func init() {
 
 func main() {
 
-	// test := viper.New()
-	// fmt.Println(test)
-
-	// Param store path
-	var paramStorePath string
-	var apikey = ""
+	var (
+		paramStorePath string
+		awsRegion      string
+		awsProfile     string
+		apikey         = ""
+	)
 
 	app := &cli.App{
 		Name:    "Vitality",
@@ -47,7 +50,14 @@ func main() {
 				Value:       "us-east-1",
 				Aliases:     []string{"r"},
 				Usage:       "Region to use - defaults to us-east-1",
-				Destination: &paramStorePath,
+				Destination: &awsRegion,
+			},
+			&cli.StringFlag{
+				Name:        "awsProfile",
+				Value:       "default",
+				Aliases:     []string{"pr"},
+				Usage:       "AWS Profile - will use default if not provided",
+				Destination: &awsProfile,
 			},
 
 			&cli.StringSliceFlag{
@@ -65,13 +75,24 @@ func main() {
 	app.Action = func(c *cli.Context) error {
 		// if paramStorePath is empty, it was not supplied
 		if paramStorePath != "" {
-			fmt.Printf("Grabbing API key from %s\n", paramStorePath)
 
-			// Create param store client
-			paramstore, err := awsssm.NewParameterStore()
+			// set up aws session for region
+			awsSession, err := session.NewSessionWithOptions(session.Options{
+				Profile: awsProfile,
+
+				Config: aws.Config{
+					Region: aws.String(awsRegion),
+				},
+			})
 			if err != nil {
 				return err
 			}
+			ssmClient := ssm.New(awsSession)
+
+			fmt.Printf("Grabbing API key from %s\n", paramStorePath)
+
+			// Create param store client
+			paramstore := awsssm.NewParameterStoreWithClient(ssmClient)
 
 			// grab the secret
 			param, err := paramstore.GetParameter(paramStorePath, true)
