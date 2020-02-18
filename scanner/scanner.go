@@ -18,7 +18,12 @@ var (
 
 // VtScanResponse JSON of the scan response
 type VtScanResponse struct {
-	//TODO! Make json struct of the return response
+	Permalink string `json:"permalink"`
+	Resource string `json:"resource"`
+	ResponseCode int `json:"response_code"`
+	ScanID string `json:"scan_id"`
+	VerboseMsg string `json:"verbose_msg"`
+	Sha256 string `json:"sha256"`
 	/*
 		{
 		'permalink': 'https://www.virustotal.com/file/d140c...244ef892e5/analysis/1359112395/',
@@ -29,18 +34,22 @@ type VtScanResponse struct {
 		'sha256': 'd140c244ef892e59c7f68bd0c6f74bb711032563e2a12fa9dda5b760daecd556'
 		}
 	*/
+	/*
+	response_code: 
+		0: not in DB
+		1: ready to get retrieved
+		-2: queued
+	*/
 }
 
-// Send files to VT and scan
-// todo: think about splitting this into a function to scan, another to display output
-// todo: will make it easier to use scan outputs for other functions like uploading somewhere
-
-// todo! add support for scanType | url or file
-
 // Scan scan a url or file and return the output as json
-func Scan(scanType string, paths []string, apiKey string) *VtScanResponse {
-	fmt.Println(paths)
+func Scan(items []string, apiKey string) *VtScanResponse {
+
+	//todo: nice to have - check if file size is under 32MB limit
+
+	fmt.Println(items)
 	return nil
+	
 	//Todo: send to /file/scan POST
 	/*
 			curl --request POST \
@@ -48,15 +57,15 @@ func Scan(scanType string, paths []string, apiKey string) *VtScanResponse {
 		--form 'apikey=<apikey>' \
 		--form 'file=@/path/to/file'
 	*/
-	//todo: check scanType
-	// todo! add support for scanType | url or file, regex matching
+	// todo! add support for  url or file, use regex per item
+
 	// todo! make this concurrent
-	for _, path := range paths {
+	for _, item := range items {
 
 		// form data to send to VT
 		formData := url.Values{
 			"apikey": {apiKey}, 
-			"file": {path},
+			"file": {item},
 		}
 		// todo! make custom http client with short timeout
 		resp, err := http.PostForm(baseURL, formData)
