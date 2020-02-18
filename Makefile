@@ -9,7 +9,7 @@ build:
 	go build -o $(PWD)/bin/vt
 
 run:
-	./bin/vt -pr personal -p /app/test/123 -f ./virus.exe ./virus2.exe badsite.com/virus.php www.nsa.gov/aboutus/equationgroup/ 
+	./bin/vt -pr personal -p /app/test/123 -i ./virus.exe -i ./virus2.exe -i badsite.com/virus.php -i www.nsa.gov/aboutus/equationgroup/ 
 
 build_docker:
 	docker build -t $(APP_NAME):$(TAG) .

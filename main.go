@@ -59,11 +59,11 @@ func main() {
 				Usage:       "AWS Profile - will use default if not provided",
 				Destination: &awsProfile,
 			},
-
+			// todo? instead of passing multiple -i make it one string and split later
 			&cli.StringSliceFlag{
-				Name:     "filePaths",
-				Usage:    "List of file paths to scan",
-				Aliases:  []string{"f"},
+				Name:     "scanItems",
+				Usage:    "List of items to scan - urls and/or file paths can be mixed",
+				Aliases:  []string{"i"},
 				Required: true,
 			},
 		},
@@ -102,14 +102,12 @@ func main() {
 
 			// decode the param
 			apikey = param.GetValue()
-			//todo! debug
-			fmt.Println(apikey)
 
 		} else {
 			fmt.Println("Grabbing API key from environment")
 			apikey = os.Getenv("VT_API_KEY")
 		}
-		scanner.Scan("file", c.StringSlice("filePaths"), apikey)
+		scanner.Scan(c.StringSlice("scanItems"), apikey)
 		return nil
 	}
 
