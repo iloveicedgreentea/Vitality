@@ -6,11 +6,13 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	
 )
 
 var (
 	baseURL = "https://www.virustotal.com/vtapi/v2/"
 )
+
 
 // Structs
 
@@ -36,8 +38,9 @@ type VtScanResponse struct {
 // todo! add support for scanType | url or file
 
 // Scan scan a url or file and return the output as json
-func Scan(scanType string, paths []string) *VtScanResponse {
+func Scan(scanType string, paths []string, apiKey string) *VtScanResponse {
 	fmt.Println(paths)
+	return nil
 	//Todo: send to /file/scan POST
 	/*
 			curl --request POST \
@@ -46,15 +49,24 @@ func Scan(scanType string, paths []string) *VtScanResponse {
 		--form 'file=@/path/to/file'
 	*/
 	//todo: check scanType
+	// todo! add support for scanType | url or file, regex matching
 	// todo! make this concurrent
 	for _, path := range paths {
-		resp, err := http.PostForm(baseURL, url.Values{"apikey": {"test123"}, "file": {path}})
+
+		// form data to send to VT
+		formData := url.Values{
+			"apikey": {apiKey}, 
+			"file": {path},
+		}
+		// todo! make custom http client with short timeout
+		resp, err := http.PostForm(baseURL, formData)
 		if err != nil {
 			//todo: handle error
 			log.Fatal(err)
 		}
 
 		defer resp.Body.Close()
+
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			//todo: handle error
