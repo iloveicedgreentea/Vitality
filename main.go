@@ -75,8 +75,7 @@ func main() {
 	app.Action = func(c *cli.Context) error {
 		// if paramStorePath is empty, it was not supplied
 		if paramStorePath != "" {
-
-			// set up aws session for region
+			// set up aws session to pass region and profile to SSM
 			awsSession, err := session.NewSessionWithOptions(session.Options{
 				Profile: awsProfile,
 
@@ -85,11 +84,12 @@ func main() {
 				},
 			})
 			if err != nil {
-				return err
+				log.Fatal(err)
 			}
+
 			ssmClient := ssm.New(awsSession)
 
-			fmt.Printf("Grabbing API key from %s\n", paramStorePath)
+			fmt.Printf("Getting API key from SSM - %s\n", paramStorePath)
 
 			// Create param store client
 			paramstore := awsssm.NewParameterStoreWithClient(ssmClient)
@@ -97,16 +97,18 @@ func main() {
 			// grab the secret
 			param, err := paramstore.GetParameter(paramStorePath, true)
 			if err != nil {
-				return err
+				log.Fatal(err)
 			}
 
 			// decode the param
 			apikey = param.GetValue()
 
 		} else {
-			fmt.Println("Grabbing API key from environment")
+			fmt.Println("Getting API key from environment")
 			apikey = os.Getenv("VT_API_KEY")
 		}
+		
+		fmt.Println("Starting VT Scan")
 		scanner.Scan(c.StringSlice("scanItems"), apikey)
 		return nil
 	}
