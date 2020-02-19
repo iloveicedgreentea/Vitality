@@ -15,12 +15,12 @@ var (
 
 // VtScanResponse JSON of the scan response
 type vtScanResponse struct {
-	Permalink string `json:"permalink"`
-	Resource string `json:"resource"`
-	ResponseCode int `json:"response_code"`
-	ScanID string `json:"scan_id"`
-	VerboseMsg string `json:"verbose_msg"`
-	Sha256 string `json:"sha256"`
+	Permalink    string `json:"permalink"`
+	Resource     string `json:"resource"`
+	ResponseCode int    `json:"response_code"`
+	ScanID       string `json:"scan_id"`
+	VerboseMsg   string `json:"verbose_msg"`
+	Sha256       string `json:"sha256"`
 	/*
 		{
 		'permalink': 'https://www.virustotal.com/file/d140c...244ef892e5/analysis/1359112395/',
@@ -32,39 +32,41 @@ type vtScanResponse struct {
 		}
 	*/
 	/*
-	response_code: 
-		0: not in DB
-		1: ready to get retrieved
-		-2: queued
+		response_code:
+			0: not in DB
+			1: ready to get retrieved
+			-2: queued
 	*/
 }
+
 // struct of each scanner in vtResultResponse.scans
 type vtScan struct {
-	Detected bool `json:"detected"` 
-	Version string `json:"version"`
-	Result string `json:"result"`
-	Update string `json:"update"`
+	Detected bool   `json:"detected"`
+	Version  string `json:"version"`
+	Result   string `json:"result"`
+	Update   string `json:"update"`
 	/*
-	'detected': true, 
-	'version': '2010-05-14.01', 
-	'result': 'Trojan.Generic.3611249', 
-	'update': '20100514'
+		'detected': true,
+		'version': '2010-05-14.01',
+		'result': 'Trojan.Generic.3611249',
+		'update': '20100514'
 	*/
 }
+
 // struct of the report
 type vtResultResponse struct {
-	ResponseCode int `json:"response_code"`
-	VerboseMsg string `json:"verbose_msg"`
-	Resource string `json:"resource"`
-	ScanID string `json:"scan_id"`
-	Md5 string `json:"md5"`
-	Sha1 string `json:"sha1"`
-	Sha256 string `json:"sha256"`
-	ScanDate string `json:"scan_date"`
-	Permalink string `json:"permalink"`
-	Positives int `json:"positives"`
-	Total int `json:"total"`
-	Scans map[string]vtScan `json:"scans"`
+	ResponseCode int               `json:"response_code"`
+	VerboseMsg   string            `json:"verbose_msg"`
+	Resource     string            `json:"resource"`
+	ScanID       string            `json:"scan_id"`
+	Md5          string            `json:"md5"`
+	Sha1         string            `json:"sha1"`
+	Sha256       string            `json:"sha256"`
+	ScanDate     string            `json:"scan_date"`
+	Permalink    string            `json:"permalink"`
+	Positives    int               `json:"positives"`
+	Total        int               `json:"total"`
+	Scans        map[string]vtScan `json:"scans"`
 
 	/*
 		{
@@ -81,29 +83,29 @@ type vtResultResponse struct {
 		'total': 40,
 		'scans': {
 			'nProtect': {
-				'detected': true, 
-				'version': '2010-05-14.01', 
-				'result': 'Trojan.Generic.3611249', 
+				'detected': true,
+				'version': '2010-05-14.01',
+				'result': 'Trojan.Generic.3611249',
 				'update': '20100514'
 			},
 			'CAT-QuickHeal': {
-				'detected': true, 
-				'version': '10.00', 
-				'result': 'Trojan.VB.acgy', 
+				'detected': true,
+				'version': '10.00',
+				'result': 'Trojan.VB.acgy',
 				'update': '20100514'
 			},
 			'McAfee': {
-				'detected': true, 
-				'version': '5.400.0.1158', 
-				'result': 'Generic.dx!rkx', 
+				'detected': true,
+				'version': '5.400.0.1158',
+				'result': 'Generic.dx!rkx',
 				'update': '20100515'
 			},
 			'TheHacker': {
-				'detected': true, 
-				'version': '6.5.2.0.280', 
-				'result': 'Trojan/VB.gen', 
+				'detected': true,
+				'version': '6.5.2.0.280',
+				'result': 'Trojan/VB.gen',
 				'update': '20100514'
-			},   
+			},
 			'VirusBuster': {
 				'detected': true,
 				'version': '5.0.27.0',
@@ -112,18 +114,20 @@ type vtResultResponse struct {
 			}
 		}
 		}
-*/
+	*/
 }
 
+// do a scan and return the json of the scan
 func startScan(item string, apiKey string) *vtScanResponse {
+	//todo: nice to have - check if file size is under 32MB limit
 	// responseData, err := httpCall
 	// response := vtScanResponse{responseData}
-	// return &response 
+	// return &response
 	// form data to send to VT
 
 	formData := url.Values{
-		"apikey": {apiKey}, 
-		"file": {item},
+		"apikey": {apiKey},
+		"file":   {item},
 	}
 
 	// todo! make custom http client with short timeout
@@ -143,38 +147,45 @@ func startScan(item string, apiKey string) *vtScanResponse {
 	}
 	fmt.Println(body)
 
-
 	// todo: make this return the correct object, which may be a list of VtScanResponse
 	return nil
 }
 
 // Scan a url or file and return the output as json
 func Scan(items []string, apiKey string) error {
-	//todo: nice to have - check if file size is under 32MB limit
-
 	// Check if the API key is empty
 	if apiKey == "" {
 		log.Fatal("Invalid API Key")
 	}
+	var scanResult vtScanResponse
+	var scanResults []vtScanResponse
 
 	//
 	// Start the scan
 	//
-	
+
 	// create a wait group
 	var wg sync.WaitGroup
 
 	// loop over the items to scan
 	for _, val := range items {
+
 		// increment wait group
 		wg.Add(1)
+
 		// async function to scan items
 		go func(item string, apikey string) {
 			defer wg.Done()
+
 			// todo! this needs to store the data and get retrieved later somehow
-			startScan(item, apiKey)
+			// todo: not sure this will work, aim is to store a bunch of vtScanResponse in a slice and append them
+			// need the marshal startScan into a var with &, pass to scanResults to be appended and stored
+			scanResult := &startScan(item, apiKey)
+			scanResults := append(scanResults, scanResult)
 		}(val, apiKey)
 	}
+
+	fmt.Println(scanResults)
 
 	// wait for calls to finish
 	wg.Wait()
@@ -184,10 +195,9 @@ func Scan(items []string, apiKey string) error {
 	// Check results
 	//
 
-
 	fmt.Println(items)
 	return nil
-	
+
 	//Todo: send to /file/scan POST
 	/*
 			curl --request POST \
