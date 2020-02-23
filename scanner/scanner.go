@@ -6,11 +6,16 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"sync"
+	"time"
+	"encoding/json"
 )
 
 var (
 	baseURL = "https://www.virustotal.com/vtapi/v2/"
+	// custom http client to have timeouts
+	httpClient = &http.Client{
+		Timeout: time.Second * 10,
+	}
 )
 
 // VtScanResponse JSON of the scan response
@@ -123,45 +128,29 @@ func Scan(items []string, apiKey string) error {
 	if apiKey == "" {
 		log.Fatal("Invalid API Key")
 	}
-	var scanResult vtScanResponse
-	var scanResults []vtScanResponse
 
 	// create channel to hold the response
-	c := make(chan scanResults)
+	scanResultChan := make(chan vtScanResponse)
+	defer close(scanResultChan)
 
-	// create a wait group
-	var wg sync.WaitGroup
-
-	// loop over the items to scan
+	// loop over the items to scan and async start scan
 	for _, val := range items {
-
-		// increment wait group
-		wg.Add(1)
-
-		// async function to scan items
-		go func(item string, apikey string) {
-			defer wg.Done()
-
-			// todo! this needs to store the data and get retrieved later somehow
-			// todo: not sure this will work, aim is to store a bunch of vtScanResponse in a slice and append them
-			// need the marshal startScan into a var with &, pass to scanResults to be appended and stored
-			scanResult := &startScan(item, apiKey)
-			scanResults := append(scanResults, scanResult)
-		}(val, apiKey)
+		go startScan(item, apiKey, scanResultChan)
 	}
 
-	fmt.Println(scanResults)
+	// block until done
+	<-scanResultChan
 
-	// wait for calls to finish
-	wg.Wait()
-	//todo: wait for scan to be ready, can wait X seconds or minutes to recheck
+	// create a iterable 
+	result := make([]vtScanResponse, len(items))
+	for i := range result {
+		// pull values out of the channel
+		result[i] = <-scanResultChan
+		fmt.Println(result[i].ResponseCode)
+		//todo! get output of channel and process if needed, or it should be processed by another function via the channel
 
-	//
-	// Check results
-	//
-
-	fmt.Println(items)
-	return nil
+		
+	}
 
 	//Todo: send to /file/scan POST
 	/*
@@ -172,39 +161,36 @@ func Scan(items []string, apiKey string) error {
 	*/
 }
 
-// do a scan and return the json of the scan
-//todo! what is the return value?
-func startScan(item string, apiKey string) vtScanResponse {
+// do a scan on each url and store in a channel
+func startScan(item string, apiKey string, channel chan vtScanResponse) {
 	//todo: nice to have - check if file size is under 32MB limit
 	// responseData, err := httpCall
 	// response := vtScanResponse{responseData}
 	// return &response
-	// form data to send to VT
 
+	// form data to send to VT
 	formData := url.Values{
 		"apikey": {apiKey},
 		"file":   {item},
 	}
 
-	// todo! make custom http client with short timeout
-	resp, err := http.PostForm(baseURL, formData)
+	resp, err := httpClient.PostForm(baseURL, formData)
 	//todo! handle rate limits (they send 204 instead of 429)
 	if err != nil {
-		//todo: handle error
 		log.Fatal(err)
 	}
-
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	var data vtScanResponse
+	decoder := json.NewDecoder(resp.Body)
+
+	// store the json in data
+	err = decoder.Decode(&data)
 	if err != nil {
-		//todo: handle error
 		log.Fatal(err)
 	}
-	fmt.Println(body)
 
-	// todo: make this return the correct object, which may be a list of VtScanResponse
-	return nil
+	channel <- err
 }
 
 //todo: get scan results
