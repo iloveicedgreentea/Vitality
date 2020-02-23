@@ -11,4 +11,4 @@ require (
 
 replace scanner => ./scanner
 
-replace paramstore => ./paramstore
+replace logger => ./logger

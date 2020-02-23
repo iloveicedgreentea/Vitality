@@ -8,17 +8,18 @@ import (
 	awsssm "github.com/PaddleHQ/go-aws-ssm"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/iloveicedgreentea/Vitality/scanner"
 	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/iloveicedgreentea/Vitality/logger"
+	"github.com/iloveicedgreentea/Vitality/scanner"
 
 	// "github.com/spf13/viper"
 
 	"github.com/urfave/cli/v2"
 )
 
-func init() {
+// func init() {
 
-}
+// }
 
 func main() {
 
@@ -75,6 +76,7 @@ func main() {
 	app.Action = func(c *cli.Context) error {
 		// if paramStorePath is empty, it was not supplied
 		if paramStorePath != "" {
+			logger.Debug("Setting up AWS Session")
 			// set up aws session to pass region and profile to SSM
 			awsSession, err := session.NewSessionWithOptions(session.Options{
 				Profile: awsProfile,
@@ -107,7 +109,7 @@ func main() {
 			fmt.Println("Getting API key from environment")
 			apikey = os.Getenv("VT_API_KEY")
 		}
-		
+
 		fmt.Println("Starting VT Scan")
 		scanner.Scan(c.StringSlice("scanItems"), apikey)
 		return nil

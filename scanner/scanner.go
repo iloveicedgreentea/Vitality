@@ -191,7 +191,7 @@ func startScan(item string, apiKey string, channel chan vtScanResponse) {
 		log.Fatal(err)
 	}
 
-	channel <- &data
+	channel <- data
 }
 
 //todo: get scan results
