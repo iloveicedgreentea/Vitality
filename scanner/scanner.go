@@ -117,40 +117,6 @@ type vtResultResponse struct {
 	*/
 }
 
-// do a scan and return the json of the scan
-func startScan(item string, apiKey string) *vtScanResponse {
-	//todo: nice to have - check if file size is under 32MB limit
-	// responseData, err := httpCall
-	// response := vtScanResponse{responseData}
-	// return &response
-	// form data to send to VT
-
-	formData := url.Values{
-		"apikey": {apiKey},
-		"file":   {item},
-	}
-
-	// todo! make custom http client with short timeout
-	resp, err := http.PostForm(baseURL, formData)
-	//todo! handle rate limits (they send 204 instead of 429)
-	if err != nil {
-		//todo: handle error
-		log.Fatal(err)
-	}
-
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		//todo: handle error
-		log.Fatal(err)
-	}
-	fmt.Println(body)
-
-	// todo: make this return the correct object, which may be a list of VtScanResponse
-	return nil
-}
-
 // Scan a url or file and return the output as json
 func Scan(items []string, apiKey string) error {
 	// Check if the API key is empty
@@ -160,9 +126,8 @@ func Scan(items []string, apiKey string) error {
 	var scanResult vtScanResponse
 	var scanResults []vtScanResponse
 
-	//
-	// Start the scan
-	//
+	// create channel to hold the response
+	c := make(chan scanResults)
 
 	// create a wait group
 	var wg sync.WaitGroup
@@ -206,6 +171,46 @@ func Scan(items []string, apiKey string) error {
 		--form 'file=@/path/to/file'
 	*/
 }
+
+// do a scan and return the json of the scan
+//todo! what is the return value?
+func startScan(item string, apiKey string) vtScanResponse {
+	//todo: nice to have - check if file size is under 32MB limit
+	// responseData, err := httpCall
+	// response := vtScanResponse{responseData}
+	// return &response
+	// form data to send to VT
+
+	formData := url.Values{
+		"apikey": {apiKey},
+		"file":   {item},
+	}
+
+	// todo! make custom http client with short timeout
+	resp, err := http.PostForm(baseURL, formData)
+	//todo! handle rate limits (they send 204 instead of 429)
+	if err != nil {
+		//todo: handle error
+		log.Fatal(err)
+	}
+
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		//todo: handle error
+		log.Fatal(err)
+	}
+	fmt.Println(body)
+
+	// todo: make this return the correct object, which may be a list of VtScanResponse
+	return nil
+}
+
+//todo: get scan results
+// func getScanResults(){
+
+// }
 
 // func S3Upload() {
 
