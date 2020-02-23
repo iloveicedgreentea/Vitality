@@ -1,7 +1,7 @@
 FROM golang:1.13.8-buster as builder
 
 WORKDIR /go/src/app
-ADD . /go/src/app
+COPY . /go/src/app
 
 RUN go get -d -v ./...
 

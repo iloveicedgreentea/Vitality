@@ -12,15 +12,17 @@ A CLI interface for VirusTotal written in Go
 
 ## Building
 
+### Build in Docker (Recommended)
+```
+make build
+```
+
 ### Build locally:
 ```
-make
+make build_system
 ```
 
-This will output a binary into `./bin/vt`
+Both will output a binary into `./bin/vt`
 
-### Docker
-```
-make docker_build
-```
+
 

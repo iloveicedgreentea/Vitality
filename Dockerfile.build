@@ -1,0 +1,6 @@
+FROM golang:1.13.8-buster as builder
+
+WORKDIR /go/src/app
+
+ENTRYPOINT [ "/go/src/app/docker/entrypoint.sh" ]
+
