@@ -1,13 +1,12 @@
 package scanner
 
 import (
+	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
 	"time"
-	"encoding/json"
 )
 
 var (
@@ -135,21 +134,21 @@ func Scan(items []string, apiKey string) error {
 
 	// loop over the items to scan and async start scan
 	for _, val := range items {
-		go startScan(item, apiKey, scanResultChan)
+		go startScan(val, apiKey, scanResultChan)
 	}
 
 	// block until done
 	<-scanResultChan
 
-	// create a iterable 
+	// create a iterable
 	result := make([]vtScanResponse, len(items))
 	for i := range result {
 		// pull values out of the channel
 		result[i] = <-scanResultChan
 		fmt.Println(result[i].ResponseCode)
 		//todo! get output of channel and process if needed, or it should be processed by another function via the channel
+		// if result[i].ResponseCode == 0 etc
 
-		
 	}
 
 	//Todo: send to /file/scan POST
@@ -159,6 +158,8 @@ func Scan(items []string, apiKey string) error {
 		--form 'apikey=<apikey>' \
 		--form 'file=@/path/to/file'
 	*/
+
+	return nil
 }
 
 // do a scan on each url and store in a channel
@@ -190,7 +191,7 @@ func startScan(item string, apiKey string, channel chan vtScanResponse) {
 		log.Fatal(err)
 	}
 
-	channel <- err
+	channel <- &data
 }
 
 //todo: get scan results

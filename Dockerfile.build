@@ -2,5 +2,6 @@ FROM golang:1.13.8-buster as builder
 
 WORKDIR /go/src/app
 
+# Run in an entrypoint since you can't mount a volume at build time
 ENTRYPOINT [ "/go/src/app/docker/entrypoint.sh" ]
 
