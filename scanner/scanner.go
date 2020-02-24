@@ -7,7 +7,6 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
-	"net/url"
 	"os"
 	"regexp"
 	"time"
@@ -245,7 +244,16 @@ func startScan(item string, apiKey string, channel chan vtScanResponse) {
 		scanURL := fmt.Sprintf("%s%s", baseURL, "file/scan")
 		log.Debug(scanURL)
 
-		resp, err := httpClient.Post(scanURL, &requestBody)
+		// create a custom request to send
+		request, err := http.NewRequest("POST", scanURL, &requestBody)
+		if err != nil {
+			log.Debug(err)
+		}
+
+		// Set content-type header to multipart/form-data
+		request.Header.Set("Content-Type", multiPartWriter.FormDataContentType())
+
+		resp, err := httpClient.Do(request)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -255,7 +263,7 @@ func startScan(item string, apiKey string, channel chan vtScanResponse) {
 		if resp.StatusCode == 204 {
 			log.Fatal("Client was rate limited")
 		}
-		
+
 		var data vtScanResponse
 		decoder := json.NewDecoder(resp.Body)
 
