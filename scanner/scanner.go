@@ -1,13 +1,16 @@
 package scanner
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
+	"mime/multipart"
 	"net/http"
 	"net/url"
 	"os"
-	"time"
 	"regexp"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -125,13 +128,12 @@ type vtResultResponse struct {
 }
 
 func init() {
-	fmt.Println("Running init")
 	if os.Getenv("DEBUG_FLAG") == "true" {
 		log.SetLevel(log.DebugLevel)
+		log.SetReportCaller(true)
 	} else {
-		log.SetLevel(log.InfoLevel)
+		log.SetLevel(log.WarnLevel)
 	}
-
 }
 
 // Scan a url or file and return the output as json
@@ -182,44 +184,78 @@ func Scan(items []string, apiKey string) error {
 
 // do a scan on each url and store in a channel
 func startScan(item string, apiKey string, channel chan vtScanResponse) {
-	//todo! check if file or url
+	//check if file or url
 	var fileFlag = true
 	var re = regexp.MustCompile(`(?m)https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&\/\/=]*)`)
 	var matcher = item
 
-	
 	if re.Match([]byte(matcher)) {
 		log.Debug("item is a url")
 		fileFlag = false
 	}
 
-
 	if fileFlag {
-		//todo! open file, use as data
+		// open the file
 		file, err := os.Open(item)
-		//todo: nice to have - check if file size is under 32MB limit
-		// responseData, err := httpCall
-		// response := vtScanResponse{responseData}
-		// return &response
-
-		// form data to send to VT
-		formData := url.Values{
-			"apikey": {apiKey},
-			"file":   {item},
+		if err != nil {
+			log.Fatal(err)
 		}
 
-		scanURL := fmt.Sprintf("%s%s", baseURL, "file/scan")
+		// check if file is larger than 32MB
+		fileInfo, err := file.Stat()
+		if err != nil {
+			log.Fatal(err)
+		}
+		// 32 MB rounded down
+		if fileInfo.Size() > 32000000 {
+			log.Fatal("File is greater than 32MB")
+		}
+		defer file.Close()
 
-		log.Debug("Form Data:", formData)
+		// store request body in this buffer
+		var requestBody bytes.Buffer
+
+		// create a multipart writer to create the request
+		multiPartWriter := multipart.NewWriter(&requestBody)
+		fileWriter, err := multiPartWriter.CreateFormField("file")
+		if err != nil {
+			log.Debug(err)
+		}
+
+		// copy the file to the file writer
+		_, err := io.Copy(fileWriter, file)
+		if err != nil {
+			log.Debug(err)
+		}
+
+		// add the API key to the form
+		fieldWriter, err := multiPartWriter.CreateFormField("apikey")
+		if err != nil {
+			log.Debug(err)
+		}
+		_, err := fieldWriter.Write([]byte(apiKey))
+		if err != nil {
+			log.Debug(err)
+		}
+
+		// close multipart writer
+		multiPartWriter.Close()
+
+		// Create the api url
+		scanURL := fmt.Sprintf("%s%s", baseURL, "file/scan")
 		log.Debug(scanURL)
 
-		resp, err := httpClient.PostForm(scanURL, formData)
-		//todo! handle rate limits (they send 204 instead of 429)
+		resp, err := httpClient.Post(scanURL, &requestBody)
 		if err != nil {
 			log.Fatal(err)
 		}
 		defer resp.Body.Close()
-
+		//todo! handle this rate limit better, retry after wait
+		// check if rate limited
+		if resp.StatusCode == 204 {
+			log.Fatal("Client was rate limited")
+		}
+		
 		var data vtScanResponse
 		decoder := json.NewDecoder(resp.Body)
 
@@ -235,7 +271,7 @@ func startScan(item string, apiKey string, channel chan vtScanResponse) {
 		log.Debug("Starting URL scan")
 
 	}
-	
+
 }
 
 //todo: get scan results

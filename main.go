@@ -19,8 +19,9 @@ import (
 func init() {
 	if os.Getenv("DEBUG_FLAG") == "true" {
 		log.SetLevel(log.DebugLevel)
+		log.SetReportCaller(true)
 	} else {
-		log.SetLevel(log.InfoLevel)
+		log.SetLevel(log.WarnLevel)
 	}
 	
 	
