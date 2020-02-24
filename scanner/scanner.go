@@ -158,29 +158,25 @@ func Scan(items []string, apiKey string) error {
 
 	// block until done
 	//<-scanResultChan
-	
+
 	// create a iterable
 	log.Debug(len(items))
 	result := make([]vtScanResponse, len(items))
 	for val := range result {
 		// pull values out of the channel
 		result[val] = <-scanResultChan
-		fmt.Println(result[val])
+		log.Debug(result[val].Permalink)
 		//todo! get output of channel and process if needed, or it should be processed by another function via the channel
 		// if result[i].ResponseCode == 0 etc
 
 	}
-	
 
-	log.Debug("Done printing values")
-
-	//Todo: send to /file/scan POST
-	/*
-			curl --request POST \
-		--url 'https://www.virustotal.com/vtapi/v2/file/scan' \
-		--form 'apikey=<apikey>' \
-		--form 'file=@/path/to/file'
-	*/
+	log.Debug("Done inserting values")
+	log.Debug("Asking for reports")
+	err := getScanResults(result)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	return nil
 }
@@ -287,7 +283,7 @@ func startScan(item string, apiKey string, channel chan vtScanResponse) {
 
 		formData := url.Values{
 			"apikey": {apiKey},
-			"url": {item},
+			"url":    {item},
 		}
 
 		log.Debug("Starting URL scan")
@@ -324,10 +320,14 @@ func startScan(item string, apiKey string, channel chan vtScanResponse) {
 
 }
 
-//todo: get scan results
-// func getScanResults(){
+//todo! get scan results
+func getScanResults(results []vtScanResponse) error {
+	// todo: function to ask for results
+	// todo: logic to retry and wait + x sec each time
+	fmt.Println("Results")
+	return nil
 
-// }
+}
 
 // func S3Upload() {
 
