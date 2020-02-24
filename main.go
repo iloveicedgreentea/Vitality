@@ -2,27 +2,31 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 
 	awsssm "github.com/PaddleHQ/go-aws-ssm"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ssm"
-	"github.com/iloveicedgreentea/Vitality/logger"
 	"github.com/iloveicedgreentea/Vitality/scanner"
+	log "github.com/sirupsen/logrus"
 
 	// "github.com/spf13/viper"
 
 	"github.com/urfave/cli/v2"
 )
 
-// func init() {
-
-// }
+func init() {
+	if os.Getenv("DEBUG_FLAG") == "true" {
+		log.SetLevel(log.DebugLevel)
+	} else {
+		log.SetLevel(log.InfoLevel)
+	}
+	
+	
+}
 
 func main() {
-
 	var (
 		paramStorePath string
 		awsRegion      string
@@ -76,7 +80,7 @@ func main() {
 	app.Action = func(c *cli.Context) error {
 		// if paramStorePath is empty, it was not supplied
 		if paramStorePath != "" {
-			logger.Debug("Setting up AWS Session")
+			log.Debug("Setting up AWS Session")
 			// set up aws session to pass region and profile to SSM
 			awsSession, err := session.NewSessionWithOptions(session.Options{
 				Profile: awsProfile,
@@ -104,10 +108,12 @@ func main() {
 
 			// decode the param
 			apikey = param.GetValue()
+			log.Debug("API Key:", apikey)
 
 		} else {
 			fmt.Println("Getting API key from environment")
 			apikey = os.Getenv("VT_API_KEY")
+			log.Debug("API Key:", apikey)
 		}
 
 		fmt.Println("Starting VT Scan")

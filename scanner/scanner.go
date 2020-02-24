@@ -3,10 +3,13 @@ package scanner
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"time"
+	"regexp"
+
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -121,12 +124,25 @@ type vtResultResponse struct {
 	*/
 }
 
+func init() {
+	fmt.Println("Running init")
+	if os.Getenv("DEBUG_FLAG") == "true" {
+		log.SetLevel(log.DebugLevel)
+	} else {
+		log.SetLevel(log.InfoLevel)
+	}
+
+}
+
 // Scan a url or file and return the output as json
 func Scan(items []string, apiKey string) error {
 	// Check if the API key is empty
 	if apiKey == "" {
+		log.Debug(apiKey)
 		log.Fatal("Invalid API Key")
 	}
+
+	log.Debug("Starting Scan function")
 
 	// create channel to hold the response
 	scanResultChan := make(chan vtScanResponse)
@@ -134,6 +150,7 @@ func Scan(items []string, apiKey string) error {
 
 	// loop over the items to scan and async start scan
 	for _, val := range items {
+		log.Debug("Starting new startScan function")
 		go startScan(val, apiKey, scanResultChan)
 	}
 
@@ -143,6 +160,7 @@ func Scan(items []string, apiKey string) error {
 	// create a iterable
 	result := make([]vtScanResponse, len(items))
 	for i := range result {
+		log.Debug("i:", i)
 		// pull values out of the channel
 		result[i] = <-scanResultChan
 		fmt.Println(result[i].ResponseCode)
@@ -164,34 +182,60 @@ func Scan(items []string, apiKey string) error {
 
 // do a scan on each url and store in a channel
 func startScan(item string, apiKey string, channel chan vtScanResponse) {
-	//todo: nice to have - check if file size is under 32MB limit
-	// responseData, err := httpCall
-	// response := vtScanResponse{responseData}
-	// return &response
+	//todo! check if file or url
+	var fileFlag = true
+	var re = regexp.MustCompile(`(?m)https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&\/\/=]*)`)
+	var matcher = item
 
-	// form data to send to VT
-	formData := url.Values{
-		"apikey": {apiKey},
-		"file":   {item},
+	
+	if re.Match([]byte(matcher)) {
+		log.Debug("item is a url")
+		fileFlag = false
 	}
 
-	resp, err := httpClient.PostForm(baseURL, formData)
-	//todo! handle rate limits (they send 204 instead of 429)
-	if err != nil {
-		log.Fatal(err)
+
+	if fileFlag {
+		//todo! open file, use as data
+		file, err := os.Open(item)
+		//todo: nice to have - check if file size is under 32MB limit
+		// responseData, err := httpCall
+		// response := vtScanResponse{responseData}
+		// return &response
+
+		// form data to send to VT
+		formData := url.Values{
+			"apikey": {apiKey},
+			"file":   {item},
+		}
+
+		scanURL := fmt.Sprintf("%s%s", baseURL, "file/scan")
+
+		log.Debug("Form Data:", formData)
+		log.Debug(scanURL)
+
+		resp, err := httpClient.PostForm(scanURL, formData)
+		//todo! handle rate limits (they send 204 instead of 429)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer resp.Body.Close()
+
+		var data vtScanResponse
+		decoder := json.NewDecoder(resp.Body)
+
+		// store the json in data
+		err = decoder.Decode(&data)
+		if err != nil {
+			log.Debug(data)
+			log.Fatal(err)
+		}
+
+		channel <- data
+	} else {
+		log.Debug("Starting URL scan")
+
 	}
-	defer resp.Body.Close()
-
-	var data vtScanResponse
-	decoder := json.NewDecoder(resp.Body)
-
-	// store the json in data
-	err = decoder.Decode(&data)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	channel <- data
+	
 }
 
 //todo: get scan results
