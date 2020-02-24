@@ -7,6 +7,7 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"os"
 	"regexp"
 	"time"
@@ -43,8 +44,8 @@ type vtScanResponse struct {
 	/*
 		response_code:
 			0: not in DB
-			1: ready to get retrieved
-			-2: queued
+			1: queued
+			-2: ?? docs are wrong
 	*/
 }
 
@@ -146,8 +147,8 @@ func Scan(items []string, apiKey string) error {
 	log.Debug("Starting Scan function")
 
 	// create channel to hold the response
-	scanResultChan := make(chan vtScanResponse)
-	defer close(scanResultChan)
+	scanResultChan := make(chan vtScanResponse, len(items))
+	//defer close(scanResultChan)
 
 	// loop over the items to scan and async start scan
 	for _, val := range items {
@@ -156,19 +157,22 @@ func Scan(items []string, apiKey string) error {
 	}
 
 	// block until done
+	log.Debug("Blocking until done...")
 	<-scanResultChan
-
+	close(scanResultChan)
+	
 	// create a iterable
 	result := make([]vtScanResponse, len(items))
-	for i := range result {
-		log.Debug("i:", i)
+	for i, _ := range result {
 		// pull values out of the channel
 		result[i] = <-scanResultChan
-		fmt.Println(result[i].ResponseCode)
+		fmt.Println(result[i].Permalink)
 		//todo! get output of channel and process if needed, or it should be processed by another function via the channel
 		// if result[i].ResponseCode == 0 etc
 
 	}
+
+	log.Debug("Done printing values")
 
 	//Todo: send to /file/scan POST
 	/*
@@ -183,6 +187,7 @@ func Scan(items []string, apiKey string) error {
 
 // do a scan on each url and store in a channel
 func startScan(item string, apiKey string, channel chan vtScanResponse) {
+	var data vtScanResponse
 	//check if file or url
 	var fileFlag = true
 	var re = regexp.MustCompile(`(?m)https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&\/\/=]*)`)
@@ -266,7 +271,6 @@ func startScan(item string, apiKey string, channel chan vtScanResponse) {
 			log.Fatal("Client was rate limited")
 		}
 
-		var data vtScanResponse
 		decoder := json.NewDecoder(resp.Body)
 
 		// store the json in data
@@ -275,11 +279,46 @@ func startScan(item string, apiKey string, channel chan vtScanResponse) {
 			log.Debug(data)
 			log.Fatal(err)
 		}
+		// Cheap hack, will redo later
 		log.Debug(data)
 
 		channel <- data
 	} else {
+
+		formData := url.Values{
+			"apikey": {apiKey},
+			"url": {item},
+		}
+
 		log.Debug("Starting URL scan")
+		// todo! implement url scanning
+
+		// Create the api url
+		scanURL := fmt.Sprintf("%s%s", baseURL, "url/scan")
+		log.Debug(scanURL)
+
+		// send Post with  x-www-form-urlencoded header
+		resp, err := httpClient.PostForm(scanURL, formData)
+
+		defer resp.Body.Close()
+		//todo! handle this rate limit better, retry after wait
+		// check if rate limited
+		if resp.StatusCode == 204 {
+			log.Fatal("Client was rate limited")
+		}
+
+		decoder := json.NewDecoder(resp.Body)
+
+		// store the json in data
+		err = decoder.Decode(&data)
+		if err != nil {
+			log.Debug(data)
+			log.Fatal(err)
+		}
+		// Cheap hack, will redo later
+		log.Debug(data)
+
+		channel <- data
 
 	}
 
