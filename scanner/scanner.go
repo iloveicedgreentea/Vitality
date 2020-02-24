@@ -148,7 +148,7 @@ func Scan(items []string, apiKey string) error {
 
 	// create channel to hold the response
 	scanResultChan := make(chan vtScanResponse, len(items))
-	//defer close(scanResultChan)
+	defer close(scanResultChan)
 
 	// loop over the items to scan and async start scan
 	for _, val := range items {
@@ -157,20 +157,20 @@ func Scan(items []string, apiKey string) error {
 	}
 
 	// block until done
-	log.Debug("Blocking until done...")
-	<-scanResultChan
-	close(scanResultChan)
+	//<-scanResultChan
 	
 	// create a iterable
+	log.Debug(len(items))
 	result := make([]vtScanResponse, len(items))
-	for i, _ := range result {
+	for val := range result {
 		// pull values out of the channel
-		result[i] = <-scanResultChan
-		fmt.Println(result[i].Permalink)
+		result[val] = <-scanResultChan
+		fmt.Println(result[val])
 		//todo! get output of channel and process if needed, or it should be processed by another function via the channel
 		// if result[i].ResponseCode == 0 etc
 
 	}
+	
 
 	log.Debug("Done printing values")
 
