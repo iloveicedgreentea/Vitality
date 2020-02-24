@@ -194,6 +194,7 @@ func startScan(item string, apiKey string, channel chan vtScanResponse) {
 	}
 
 	if fileFlag {
+		log.Debug("item is a file")
 		// open the file
 		file, err := os.Open(item)
 		if err != nil {
@@ -209,6 +210,7 @@ func startScan(item string, apiKey string, channel chan vtScanResponse) {
 		if fileInfo.Size() > 32000000 {
 			log.Fatal("File is greater than 32MB")
 		}
+		log.Debug("File size is ok")
 		defer file.Close()
 
 		// store request body in this buffer
@@ -222,7 +224,7 @@ func startScan(item string, apiKey string, channel chan vtScanResponse) {
 		}
 
 		// copy the file to the file writer
-		_, err := io.Copy(fileWriter, file)
+		_, err = io.Copy(fileWriter, file)
 		if err != nil {
 			log.Debug(err)
 		}
@@ -232,7 +234,7 @@ func startScan(item string, apiKey string, channel chan vtScanResponse) {
 		if err != nil {
 			log.Debug(err)
 		}
-		_, err := fieldWriter.Write([]byte(apiKey))
+		_, err = fieldWriter.Write([]byte(apiKey))
 		if err != nil {
 			log.Debug(err)
 		}
@@ -273,6 +275,7 @@ func startScan(item string, apiKey string, channel chan vtScanResponse) {
 			log.Debug(data)
 			log.Fatal(err)
 		}
+		log.Debug(data)
 
 		channel <- data
 	} else {
