@@ -275,8 +275,6 @@ func startScan(item string, apiKey string, channel chan vtScanResponse) {
 			log.Debug(data)
 			log.Fatal(err)
 		}
-		// Cheap hack, will redo later
-		log.Debug(data)
 
 		channel <- data
 	} else {
@@ -311,8 +309,6 @@ func startScan(item string, apiKey string, channel chan vtScanResponse) {
 			log.Debug(data)
 			log.Fatal(err)
 		}
-		// Cheap hack, will redo later
-		log.Debug(data)
 
 		channel <- data
 
