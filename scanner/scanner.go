@@ -320,6 +320,10 @@ func startScan(item string, apiKey string, channel chan vtScanResponse) {
 func getScanResults(results []vtScanResponse) error {
 	// todo: function to ask for results
 	// todo: logic to retry and wait + x sec each time
+	/*
+		curl --request GET \
+			--url 'https://www.virustotal.com/vtapi/v2/file/report?apikey=<apikey>&resource=<resource>'
+	*/
 	fmt.Println("Results")
 	return nil
 
